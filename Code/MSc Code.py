@@ -4,6 +4,7 @@
 import numpy as np 
 import matplotlib.pyplot as plt
 from matplotlib import animation
+plt.rcParams['animation.ffmpeg_path'] = r'C:\FFmpeg\bin\ffmpeg'
 from scipy.sparse import diags
 from scipy.signal import unit_impulse
 
@@ -30,7 +31,7 @@ I = np.identity(J)
 updateMatrix = np.matmul(np.linalg.inv(I + alpha*M), I - alpha*M)
 
 #Defines the x-axis to be plotted against.
-x = np.linspace(-1,1,J)
+x = np.linspace(0.5,1.5,J)
 
 def exactSol(x,t):
     """
@@ -52,34 +53,33 @@ def exactSolPlot():
     plt.plot(np.log(np.linspace(1,T,T-1)),np.log(EData), color='k')
     plt.savefig('Plots/Exact_Error.png')
 
-def evolutionAnimation():
+def evolutionAnimation(saveFig = False):
     """
     Displays an animated plot showing the evolution of the calculated distribution over time.
     """
     fig, ax = plt.subplots()
     fig.set_size_inches(6,4)
-    time_text = ax.text(0.02, 0.88, '\n'.join(('','')), transform=ax.transAxes, bbox=dict(boxstyle='round', facecolor='white', alpha=0.5))
+    text = ax.text(0.02, 0.88, '\n'.join(('','')), transform=ax.transAxes, bbox=dict(boxstyle='round', facecolor='white', alpha=0.5))
     line, = ax.plot(x, Wdata[0], color='k')
+    line.axes.axis([0.5, 1.5, 0, 1])
 
     def animate(i, Wdata):
         """
         Defines the animation function used by 'FuncAnimation'.
         """
-        ax.clear()
-        ax.set_title('PDF Evolution with Time')
+        ax.set_title('FPE Evolution with Time ($D^{(1)} = 0, D^{(2)} =$ Constant)')
         ax.set_ylabel('Probability')
-        ax.set_xlabel('Period')
-        time_text.set_text('\n'.join(('Timestep = '+str(i),'Total Probability = '+str(round(sum(Wdata[i]),2)))))
+        ax.set_xlabel('Period / $\~P$')
+        text.set_text('\n'.join(('Timestep = '+str(i),'Total Probability = '+str(round(sum(Wdata[i]),2)))))
         line.set_data(x, Wdata[i])
-        line.axes.axis([-1, 1, 0, 1])
-        return line, time_text,
+        return line, text,
 
     #Runs the animation.
-    ani = animation.FuncAnimation(fig, animate, fargs = [Wdata], frames=T, interval=0.01, blit=True, repeat=False)
+    ani = animation.FuncAnimation(fig, animate, fargs = [Wdata], frames=T, interval=10, blit = True, repeat=False)
 
-    # Writer = animation.writers['ffmpeg']
-    # writer = Writer(fps = 30, metadata=dict(artist='David Moody'), bitrate = 1800, extra_args=['-vcodec', 'libx264'])
-    ani.save('Plots/PDF_Animation.mp4', writer=animation.FFMpegWriter(fps=60) )
+    #Saves animation if required.
+    if saveFig:
+        ani.save('Plots/diffusion_animation.mp4', writer = animation.FFMpegWriter(fps = 30),dpi=500)
     
     plt.show()
 
@@ -96,5 +96,3 @@ for t in range(T):
     
     Wdata.append(W)
     W = np.dot(updateMatrix, W).tolist()[0]         #Update the distribution at each timestep.
-
-evolutionAnimation()
