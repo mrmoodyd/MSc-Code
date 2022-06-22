@@ -112,5 +112,3 @@ for t in range(0,T-1):
     Wdata.append(W)
 
     EData.append(np.max(E - W))        #Calculates the max difference from the exact solution at this timestep.
-
-evolutionAnimation()

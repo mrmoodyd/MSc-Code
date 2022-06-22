@@ -86,5 +86,3 @@ for t in range(0,T-1):
 
     W = np.dot(updateMatrix, W)         #Update the distribution at each timestep.
     Wdata.append(W)
-
-evolutionAnimation(saveFig=True)
