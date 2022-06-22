@@ -5,54 +5,34 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import animation
 plt.rcParams['animation.ffmpeg_path'] = r'C:\FFmpeg\bin\ffmpeg'
+from scipy.stats import norm
 from scipy.sparse import diags
 from scipy.signal import unit_impulse
 
-
-
-#Defines the finite differencing size for the space (dx) and time (dt) dimensions.
-dx = 0.01
-dt = 0.001
-
-#Defines the x-axis to be plotted against.
-x = np.arange(0.5,1.5,dx)
-
-#Defines the limits for the space (J) and time (T) range being considered.
-J = len(x)
-T = 2000
-
-#Defines the diffusion coefficient (D2) and the constant alpha using previously defined variables.
-D2 = 0.01
-alpha = D2*dt/(2*dx**2)
-
-#Defines the initial W vector as a Dirac-delta function 
-W = unit_impulse(J, 'mid')
-
-#Defines the M and I matrices as outlined in the progress report.
-M = diags([-1,2,-1], [-1, 0, 1], shape = (J,J))
-I = np.identity(J)
-
-#Defines the update matrix, making use of the I and M matrices and the alpha constant.
-updateMatrix = np.matmul(np.linalg.inv(I + alpha*M), I - alpha*M)
-
-def exactSol(x,t):
+def exactSol(variance):
     """
     Creates an exact Guassian solution for an input (x) at a given time (t), 
-    using a given diffusion coefficient (D2).
+    using a given variance.
     """
-    sigma = np.sqrt(2*D2*t*dt)          #Calculates the current standard deviation
-    return (dx/np.sqrt(2*np.pi*sigma**2))*np.exp(-0.5*((x-1)/sigma)**2)  #Returns the Guassian distribution
 
+    return dx*norm.pdf(x, loc=1, scale=np.sqrt(variance))
 
 def exactSolPlot(saveFig=False):
     """
     Displays a log plot of the difference between the exact solution and the calculated distribution
     as a function of time.
     """
-    plt.title('Exact Solution Error Against Time')
-    plt.xlabel('log(t)')
-    plt.ylabel('log(max(error))')
-    plt.plot(np.linspace(1,T,T-1),EData, color='k')
+    fig, (ax1, ax2) = plt.subplots(1, 2)
+    plt.tight_layout()
+    fig.suptitle('Exact Guassian Solution Error Against Time')
+    ax1.set_xlabel('t / $\~P$')
+    ax1.set_ylabel('max(error)')
+    ax1.plot(dt*np.linspace(0,T,T),EData, color='k')
+    
+    ax2.set_xlabel('log(t) / log($\~P$)')
+    ax2.set_ylabel('log(max(error))')
+    ax2.plot(np.log(dt*np.linspace(0,T,T)),np.log(EData), color='k')
+
     if saveFig:
         plt.savefig('Plots/Exact_Error.png')
         
@@ -63,26 +43,22 @@ def evolutionAnimation(saveFig = False):
     Displays an animated plot showing the evolution of the calculated distribution over time.
     """
     fig, ax = plt.subplots()
-    fig.set_size_inches(10,8)
-    text = ax.text(0.02, 0.87, '\n'.join(('','')), transform=ax.transAxes, bbox=dict(boxstyle='round', facecolor='white', alpha=0.5))
+    text = ax.text(0.02, 0.85, '\n'.join(('','','')), transform=ax.transAxes, bbox=dict(boxstyle='round', facecolor='white', alpha=0.5))
     line, = ax.plot(x, Wdata[0], color='k')
-    line2, = ax.plot(x, Wdata[0], color='r')
-    line.axes.axis([0.5, 1.5, 0, 1])
 
-    def animate(i, Wdata):
+    def animate(i, Wdata, EData):
         """
         Defines the animation function used by 'FuncAnimation'.
         """
         ax.set_title('FPE Evolution with Time ($D^{(1)} = 0, D^{(2)} =$ Constant)')
         ax.set_ylabel('Probability')
         ax.set_xlabel('Period / $\~P$')
-        text.set_text('\n'.join(('Time = {:.2f} $\~P$'.format(i*dt,2),'Probability Loss = {:.2e}'.format(1 - sum(Wdata[i])))))
+        text.set_text('\n'.join(('Time = {:.2f} $\~P$'.format(i*dt,2),'Probability Loss = {:.2e}'.format(1-sum(Wdata[i])),'Exact Solution Error = {:.2e}'.format(EData[i]))))
         line.set_data(x, Wdata[i])
-        line2.set_data(x, exactSol(x,i))
-        return line, line2, text,
+        return line, text,
 
     #Runs the animation.
-    ani = animation.FuncAnimation(fig, animate, fargs = [Wdata], frames=T, interval=100, blit = True, repeat=False)
+    ani = animation.FuncAnimation(fig, animate, fargs = [Wdata, EData], frames=T, interval=1, blit = True, repeat=False)
 
     #Saves animation if required.
     if saveFig:
@@ -90,19 +66,51 @@ def evolutionAnimation(saveFig = False):
     
     plt.show()
 
-EData = []
-Wdata = []
 
-for t in range(T):
+#Defines the finite differencing size for the space (dx) and time (dt) dimensions.
+dx = 0.001
+dt = 0.001
+
+#Defines the x-axis to be plotted against.
+xmin = 0.5
+xmax = 1.5
+x = np.arange(xmin,xmax,dx)
+
+#Defines the limits for the space (J) and time (T) range being considered.
+J = len(x)
+T = 2000
+
+#Defines the diffusion coefficient (D2) and the constant alpha using previously defined variables.
+D2 = 0.01
+alpha = D2*dt/(2*dx**2)
+
+#Defines the initial W vector as a narrow Gaussian 
+variance = 10*dx**2
+W = exactSol(variance)
+
+#Defines the M and I matrices as outlined in the progress report.
+M = diags([-1,2,-1], [-1, 0, 1], shape = (J,J))
+I = np.identity(J)
+
+#Defines the update matrix, making use of the I and M matrices and the alpha constant.
+updateMatrix = np.matmul(np.linalg.inv(I + alpha*M), I - alpha*M)
+
+EData = [0]
+exactData = [W]
+Wdata = [W]
+
+for t in range(0,T-1):
     """
     Iterate over the defined number of timesteps, evolving the distribution at each timestep 
     and calculating any other wanted parameters (errors).
     """
-    if t > 0:
-        EData.append(max(exactSol(x,t) - W))        #Calculates the max difference from the exact solution at this timestep.
-    
+    variance += 2*D2*dt
+    E = exactSol(variance)
+    exactData.append(E)
 
-    Wdata.append(W)
     W = np.dot(updateMatrix, W).tolist()[0]         #Update the distribution at each timestep.
+    Wdata.append(W)
 
-#exactSolPlot()
+    EData.append(np.max(E - W))        #Calculates the max difference from the exact solution at this timestep.
+
+evolutionAnimation()
