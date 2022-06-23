@@ -14,7 +14,6 @@ def exactSol(variance):
     Creates an exact Guassian solution for an input (x) at a given time (t), 
     using a given variance.
     """
-
     return dx*norm.pdf(x, loc=1, scale=np.sqrt(variance))
 
 def evolutionAnimation(saveFig = False):
@@ -22,22 +21,23 @@ def evolutionAnimation(saveFig = False):
     Displays an animated plot showing the evolution of the calculated distribution over time.
     """
     fig, ax = plt.subplots()
-    text = ax.text(0.02, 0.87, '\n'.join(('','')), transform=ax.transAxes, bbox=dict(boxstyle='round', facecolor='white', alpha=0.5))
+    text = ax.text(0.02, 0.84, '\n'.join(('','','')), transform=ax.transAxes, bbox=dict(boxstyle='round', facecolor='white', alpha=0.5))
     line, = ax.plot(x, Wdata[0], color='k')
+    #Would be interesting to add horizonatal line showing the mean of the distribution as it drifts from the initial mean
 
     def animate(i, Wdata):
         """
         Defines the animation function used by 'FuncAnimation'.
         """
-        ax.set_title('FPE Evolution with Time ($D^{(1)} = 0$)')
+        ax.set_title('FPE Evolution with Time')
         ax.set_ylabel('Probability')
         ax.set_xlabel('Period / $\~P$')
-        text.set_text('\n'.join(('Time = {:.2f} $\~P$ (Orbits)'.format(i*dt,2),'Probability Loss = {:.2e}'.format(1 - sum(Wdata[i])))))
+        text.set_text('\n'.join(('Time = {:.2f} $\~P$ (Orbits)'.format(i*dt,2),'Probability Loss = {:.2e}'.format(1 - sum(Wdata[i])),'Drift = {:.2e} $\~P$'.format(dx*(np.mean(Wdata[0]) - np.mean(Wdata[i]))))))
         line.set_data(x, Wdata[i])
         return line, text,
 
     #Runs the animation.
-    ani = animation.FuncAnimation(fig, animate, fargs = [Wdata], frames=T, interval=10, blit = True, repeat=False)
+    ani = animation.FuncAnimation(fig, animate, fargs = [Wdata], frames=T, interval=1, blit = True, repeat=False)
 
     #Saves animation if required.
     if saveFig:
@@ -47,7 +47,7 @@ def evolutionAnimation(saveFig = False):
 
 #Defines the finite differencing size for the space (dx) and time (dt) dimensions.
 dx = 1e-15
-dt = 0.01
+dt = 0.1
 
 #Defines the x-axis to be plotted against.
 x = np.arange(1-1e-13,1+1e-13,dx)
@@ -56,14 +56,19 @@ x = np.arange(1-1e-13,1+1e-13,dx)
 J = len(x)
 T = 2000
 
-#Define P0 in seconds
+#Define P0, H0, omega, and alpha.
 P0 = (1/12)*3.154e7
-
-#Defines the diffusion coefficient (D2) and the constant alpha using previously defined variables.
 H0 = 2.27e-18
-omega = 1e-6
-D2 = np.diag([(27/20)*P*(H0**2)*(P0**2)*omega for P in x])
+omega = 1e-7
+
 alpha = dt/(2*dx**2)
+
+#Defines the drift coefficient matrix (D1) using previously defined variables.
+D1Values = [(3/160)*P**2*(H0**2)*(P0**2)*(-79*omega + 288*omega - 27*omega) for P in x]
+D1 = diags([D1Values[:J-1], D1Values[1:J]], [-1,1], shape=(J,J))
+
+#Defines the diffusion coefficient matrix (D2) using previously defined variables.
+D2 = np.diag([(27/20)*P**3*(H0**2)*(P0**2)*omega for P in x])
 
 #Defines the initial W vector as a narrow Gaussian 
 variance = dx**2
@@ -74,8 +79,13 @@ M = diags([-1,2,-1], [-1, 0, 1], shape = (J,J)).toarray()
 I = np.identity(J)
 
 #Defines the update matrix, making use of the I and M matrices and the alpha constant.
-updateMatrix = np.matmul(np.linalg.inv(I + alpha*np.dot(M,D2)), I - alpha*np.dot(M,D2))
+updateMatrix = np.matmul(np.linalg.inv(I + alpha*((dx/2)*D1 + np.matmul(M,D2))), I - alpha*((dx/2)*D1 + np.matmul(M,D2)))
 
+#Set boundary Conditions.
+updateMatrix[0] = [0]*J
+updateMatrix[J-1] = [0]*J
+
+#Initialise PDF data list
 Wdata = [W]
 
 for t in range(0,T-1):
@@ -84,5 +94,7 @@ for t in range(0,T-1):
     and calculating any other wanted parameters (errors).
     """
 
-    W = np.dot(updateMatrix, W)         #Update the distribution at each timestep.
+    W = np.matmul(updateMatrix, W).tolist()[0]         #Update the distribution at each timestep.
     Wdata.append(W)
+
+evolutionAnimation()
