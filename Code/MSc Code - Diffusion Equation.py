@@ -95,6 +95,10 @@ I = np.identity(J)
 #Defines the update matrix, making use of the I and M matrices and the alpha constant.
 updateMatrix = np.matmul(np.linalg.inv(I + alpha*M), I - alpha*M)
 
+#Implement boundary conditions
+updateMatrix[0] = [0]*J
+updateMatrix[J-1] = [0]*J
+
 EData = [0]
 exactData = [W]
 Wdata = [W]
