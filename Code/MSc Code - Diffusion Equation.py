@@ -22,16 +22,11 @@ def exactSolPlot(saveFig=False):
     Displays a log plot of the difference between the exact solution and the calculated distribution
     as a function of time.
     """
-    fig, (ax1, ax2) = plt.subplots(1, 2)
-    plt.tight_layout()
-    fig.suptitle('Exact Guassian Solution Error Against Time')
-    ax1.set_xlabel('t / $\~P$')
-    ax1.set_ylabel('max(error)')
-    ax1.plot(dt*np.linspace(0,T,T),EData, color='k')
     
-    ax2.set_xlabel('log(t) / log($\~P$)')
-    ax2.set_ylabel('log(max(error))')
-    ax2.plot(np.log(dt*np.linspace(0,T,T)),np.log(EData), color='k')
+    plt.title('Exact Solution Error Against Time')
+    plt.xlabel('log(t) / log($\~P$)')
+    plt.ylabel('log(max(error))')
+    plt.plot(np.log(dt*np.linspace(0,T,T)),np.log(EData), color='k')
 
     if saveFig:
         plt.savefig('Plots/Exact_Error.png')
