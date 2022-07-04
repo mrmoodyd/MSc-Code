@@ -11,8 +11,7 @@ from scipy.signal import peak_widths, find_peaks
 
 def exactSol(variance):
     """
-    Creates an exact Guassian solution for an input (x) at a given time (t), 
-    using a given variance.
+    Creates an exact Guassian PDF using a given variance.
     """
     return norm.pdf(x, loc=1, scale=np.sqrt(variance))/np.sum(norm.pdf(x, loc=1, scale=np.sqrt(variance)))
 
@@ -89,13 +88,11 @@ updateMatrix[J-1] = [0]*J
 #Initialise PDF data list
 Wdata = [W]
 
+#Run simulation.
 for t in range(0,T-1):
     """
-    Iterate over the defined number of timesteps, evolving the distribution at each timestep 
-    and calculating any other wanted parameters (errors).
+    Iterate over the defined number of timesteps, evolving the distribution at each timestep.
     """
 
     W = np.matmul(updateMatrix, W).tolist()[0]         #Update the distribution at each timestep.
     Wdata.append(W)
-
-evolutionAnimation(saveFig=True)
