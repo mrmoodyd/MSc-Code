@@ -7,7 +7,7 @@ from matplotlib import animation
 plt.rcParams['animation.ffmpeg_path'] = r'C:\FFmpeg\bin\ffmpeg'
 from scipy.stats import norm
 from scipy.sparse import diags
-from scipy.signal import unit_impulse
+from scipy.signal import peak_widths, find_peaks
 
 def exactSol(variance):
     """
@@ -32,7 +32,7 @@ def evolutionAnimation(saveFig = False):
         ax.set_title('FPE Evolution with Time')
         ax.set_ylabel('Probability')
         ax.set_xlabel('Period / $\~P$')
-        text.set_text('\n'.join(('Time = {:.2f} $\~P$ (Orbits)'.format(i*dt,2),'Probability Loss = {:.2e}'.format(1 - sum(Wdata[i])),'Drift = {:.2e} $\~P$'.format(dx*(np.mean(Wdata[0]) - np.mean(Wdata[i]))))))
+        text.set_text('\n'.join(('Time = {:.2f} $\~P$ (Orbits)'.format(i*dt,2),'Probability Loss = {:.2e}'.format(1 - sum(Wdata[i])),'Drift = {:.2e} $\~P$'.format(abs(x[np.argmax(Wdata[0])] - x[np.argmax(Wdata[i])])))))
         line.set_data(x, Wdata[i])
         return line, text,
 
@@ -46,26 +46,26 @@ def evolutionAnimation(saveFig = False):
     plt.show()
 
 #Defines the finite differencing size for the space (dx) and time (dt) dimensions.
-dx = 1e-15
-dt = 0.1
+dx = 1e-14
+dt = 1
 
 #Defines the x-axis to be plotted against.
-x = np.arange(1-1e-13,1+1e-13,dx)
+x = np.arange(1-1e-11,1+1e-11,dx)
 
 #Defines the limits for the space (J) and time (T) range being considered.
 J = len(x)
 T = 2000
 
 #Define P0, H0, omega, and alpha.
-P0 = (1/12)*3.154e7
+P0 = 28*60*60*24
 H0 = 2.27e-18
-omega = 1e-7
+omega = 1e-5
 
 alpha = dt/(2*dx**2)
 
 #Defines the drift coefficient matrix (D1) using previously defined variables.
 D1Values = [(3/160)*P**2*(H0**2)*(P0**2)*(-79*omega + 288*omega - 27*omega) for P in x]
-D1 = diags([D1Values[:J-1], D1Values[1:J]], [-1,1], shape=(J,J))
+D1 = 0*diags([D1Values[:J-1], D1Values[1:J]], [-1,1], shape=(J,J))
 
 #Defines the diffusion coefficient matrix (D2) using previously defined variables.
 D2 = np.diag([(27/20)*P**3*(H0**2)*(P0**2)*omega for P in x])
@@ -96,5 +96,3 @@ for t in range(0,T-1):
 
     W = np.matmul(updateMatrix, W).tolist()[0]         #Update the distribution at each timestep.
     Wdata.append(W)
-
-evolutionAnimation()
