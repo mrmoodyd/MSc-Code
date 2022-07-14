@@ -15,6 +15,13 @@ def exactSol(variance):
     """
     return norm.pdf(x, loc=1, scale=np.sqrt(variance))/np.sum(norm.pdf(x, loc=1, scale=np.sqrt(variance)))
 
+def findVar(xdata,ydata):
+    """
+    Reads the x and y data of the PDF and returns the associated variance.
+    """
+    mean = np.dot(xdata, ydata)
+    return np.sum(np.dot((mean-xdata)**2,ydata))
+
 def evolutionAnimation(saveFig = False):
     """
     Displays an animated plot showing the evolution of the calculated distribution over time.
@@ -22,18 +29,19 @@ def evolutionAnimation(saveFig = False):
     fig, ax = plt.subplots()
     text = ax.text(0.02, 0.84, '\n'.join(('','','')), transform=ax.transAxes, bbox=dict(boxstyle='round', facecolor='white', alpha=0.5))
     line, = ax.plot(x, Wdata[0], color='k')
-    #Would be interesting to add horizonatal line showing the mean of the distribution as it drifts from the initial mean
+    ax.set_xlim(1-1.3e-12,1+1.3e-12)
+    ax.set_ylim(0,0.1)
+    ax.set_title('Earth-Moon System ($D^{(1)} = 0, D^{(2)} = $Constant)')
+    ax.set_ylabel('Probability')
+    ax.set_xlabel('Period / $\~P$')
 
     def animate(i, Wdata):
         """
         Defines the animation function used by 'FuncAnimation'.
         """
-        ax.set_title('Earth-Moon System Evolution ($D^{(1)} = 0$)')
-        ax.set_ylabel('Probability')
-        ax.set_xlabel('Period / $\~P$')
-        text.set_text('\n'.join(('Time = {:.2f} $\~P$ (Orbits)'.format(i*dt,2),'Probability Loss = {:.2e}'.format(sum(Wdata[0]) - sum(Wdata[i])),'Standard Deviation = {:.2e} $\~P$'.format(np.sqrt(np.sum(np.dot((1-x)**2,Wdata[i])))))))
+        text.set_text('\n'.join(('Time = {:.1f} $P_0$ (Orbits)'.format(i*dt,2),'Probability Loss = {:.2e}'.format(abs(sum(Wdata[0]) - sum(Wdata[i]))),'Standard Deviation = {:.2e} $P_0$'.format(np.sqrt(findVar(x,Wdata[i]))))))
         line.set_data(x, Wdata[i])
-        return line, text,
+        return line, text, 
 
     #Runs the animation.
     ani = animation.FuncAnimation(fig, animate, fargs = [Wdata], frames=T, interval=1, blit = True, repeat=False)
@@ -46,14 +54,14 @@ def evolutionAnimation(saveFig = False):
 
 #Defines the finite differencing size for the space (dx) and time (dt) dimensions.
 dx = 1e-14
-dt = 1
+dt = 0.5
 
 #Defines the x-axis to be plotted against.
-x = np.arange(1-0.5e-11,1+0.5e-11,dx)
+x = np.arange(1-5e-12,1+5e-12,dx)
 
 #Defines the limits for the space (J) and time (T) range being considered.
 J = len(x)
-T = 1000
+T = 401
 
 #Define P0, H0, omega, and alpha.
 P0 = 28*60*60*24
@@ -67,8 +75,8 @@ D1Values = [(3/160)*P**2*(H0**2)*(P0**2)*(-79*omega + 288*omega - 27*omega) for 
 D1 = 0*diags([D1Values[:J-1], D1Values[1:J]], [-1,1], shape=(J,J))
 
 #Defines the diffusion coefficient matrix (D2) using previously defined variables.
-#D2 = np.diag([(27/20)*(H0**2)*(P0**2)*omega for P in x])       #For constant D2
-D2 = np.diag([(27/20)*P**3*(H0**2)*(P0**2)*omega for P in x])  #For variable D2
+D2 = np.diag([(27/20)*(H0**2)*(P0**2)*omega for P in x])       #For constant D2
+#D2 = np.diag([(27/20)*P**3*(H0**2)*(P0**2)*omega for P in x])  #For variable D2
 
 #Defines the initial W vector as a narrow Gaussian 
 variance = dx**2
