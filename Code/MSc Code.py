@@ -15,12 +15,12 @@ def exactSol(variance):
     """
     return norm.pdf(x, loc=1, scale=np.sqrt(variance))/np.sum(norm.pdf(x, loc=1, scale=np.sqrt(variance)))
 
-def findVar(xdata,ydata):
+def findMoment(n,ydata):
     """
-    Reads the x and y data of the PDF and returns the associated variance.
+    Takes the y data of the pdf and calculates the central moment specified by n.
     """
-    mean = np.dot(xdata, ydata)
-    return np.sum(np.dot((mean-xdata)**2,ydata))
+    mean = np.dot(x, ydata)
+    return np.sum(np.dot((mean-x)**n,ydata))
 
 def evolutionAnimation(saveFig = False):
     """
@@ -39,7 +39,7 @@ def evolutionAnimation(saveFig = False):
         """
         Defines the animation function used by 'FuncAnimation'.
         """
-        text.set_text('\n'.join(('Time = {:.1f} $P_0$ (Orbits)'.format(i*dt,2),'Probability Loss = {:.2e}'.format(abs(sum(Wdata[0]) - sum(Wdata[i]))),'Standard Deviation = {:.2e} $P_0$'.format(np.sqrt(findVar(x,Wdata[i]))))))
+        text.set_text('\n'.join(('Time = {:.1f} $P_0$ (Orbits)'.format(i*dt,2),'Probability Loss = {:.2e}'.format(abs(sum(Wdata[0]) - sum(Wdata[i]))),'Standard Deviation = {:.2e} $P_0$'.format(np.sqrt(findMoment(2,Wdata[i]))))))
         line.set_data(x, Wdata[i])
         return line, text, 
 
