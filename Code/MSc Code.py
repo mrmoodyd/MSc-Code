@@ -19,7 +19,7 @@ def findMoment(n,ydata):
     Takes the y data of the pdf and calculates the central moment specified by n.
     """
     mean = np.dot(x, ydata)
-    return np.sum(np.dot((mean-x)**n,ydata))
+    return np.sum(np.dot((x-mean)**n,ydata))
 
 def evolutionAnimation(saveFig = False):
     """
@@ -27,23 +27,23 @@ def evolutionAnimation(saveFig = False):
     """
     fig, ax = plt.subplots()
     text = ax.text(0.02, 0.84, '\n'.join(('','','')), transform=ax.transAxes, bbox=dict(boxstyle='round', facecolor='white', alpha=0.5))
-    line, = ax.plot(x, Wdata_3[0], color='k')
-    ax.set_xlim(1-1.3e-12,1+1.3e-12)
+    line, = ax.plot(x, Wdata_3[0]-exactData[0], color='k')
+    #ax.set_xlim(1-1.3e-12,1+1.3e-12)
     ax.set_ylim(0,0.01)
     ax.set_title('Earth-Moon System ($D^{(1)} = 0, D^{(2)} = $Constant)')
     ax.set_ylabel('Probability')
     ax.set_xlabel('Period / $\~P$')
 
-    def animate(i, Wdata):
+    def animate(i, Wdata_3, exactData):
         """
         Defines the animation function used by 'FuncAnimation'.
         """
-        text.set_text('\n'.join(('Time = {:.1f} $P_0$ (Orbits)'.format(i*dt,2),'Probability Loss = {:.2e}'.format(abs(sum(Wdata_3[0]) - sum(Wdata_3[i]))),'Standard Deviation = {:.2e} $P_0$'.format(np.sqrt(findMoment(2,Wdata_3[i]))))))
-        line.set_data(x, Wdata[i])
+        text.set_text('\n'.join(('Time = {:.1f} $P_0$ (Orbits)'.format(i*dt,2),'Probability Loss = {:.2e}'.format(abs(sum(Wdata_3[0]) - sum(Wdata_3[i]))),'Fourth C Moment = '+str(findMoment(4, Wdata_3[i])/findMoment(2,Wdata_3[i])**2))))#Standard Deviation = {:.2e} $P_0$'.format(np.sqrt(findMoment(2,Wdata_3[i]))))))
+        line.set_data(x, Wdata_3[i])
         return line, text, 
 
     #Runs the animation.
-    ani = animation.FuncAnimation(fig, animate, fargs = [Wdata_3], frames=T, interval=1, blit = True, repeat=False)
+    ani = animation.FuncAnimation(fig, animate, fargs = [Wdata_3, exactData], frames=T, interval=1, blit = True, repeat=False)
 
     #Saves animation if required.
     if saveFig:
@@ -56,7 +56,7 @@ dx = 1e-14
 dt = 1
 
 #Defines the x-axis to be plotted against.
-x = np.arange(1-5e-12,1+5e-12,dx)
+x = np.arange(1-10e-12,1+10e-12,dx)
 
 #Defines the limits for the space (J) and time (T) range being considered.
 J = len(x)
@@ -102,47 +102,43 @@ updateMatrix_3[0] = [0]*J
 updateMatrix_3[J-1] = [0]*J
 
 #Initialise PDF data list
+exactData = [W]
 Wdata_1 = [W]
 Wdata_2 = [W]
 Wdata_3 = [W]
 
-pLoss = [0]
-momentData_1 = [findMoment(3, W)/findMoment(2,W)**(3/2)]
-momentData_2 = [findMoment(3, W)/findMoment(2,W)**(3/2)]
-momentData_3 = [findMoment(3, W)/findMoment(2,W)**(3/2)]
+exactMoment = [findMoment(4, W)/findMoment(2,W)**2]
+momentData_1 = [findMoment(4, W)/findMoment(2,W)**2]
+momentData_2 = [findMoment(4, W)/findMoment(2,W)**2]
+momentData_3 = [findMoment(4, W)/findMoment(2,W)**2]
 
 #Run simulation.
-# for t in range(0,T-1):
-#     """
-#     Iterate over the defined number of timesteps, evolving the distribution at each timestep.
-#     """
-#     Wdata_1.append(np.matmul(updateMatrix_1, Wdata_1[t]).tolist()[0])     #Update the distribution at each timestep.
-#     momentData_1.append(findMoment(3, Wdata_1[t+1])/findMoment(2,W)**(3/2))
+for t in range(0,T-1):
+    """
+    Iterate over the defined number of timesteps, evolving the distribution at each timestep.
+    """
+    
+    variance += 2*(27/20)*(H0**2)*(P0**2)*omega*dt
+    exactData.append(exactSol(variance))
+    exactMoment.append(findMoment(4, exactData[t+1])/findMoment(2,exactData[t+1])**2)
 
-#     Wdata_2.append(np.matmul(updateMatrix_2, Wdata_2[t]).tolist()[0])
-#     momentData_2.append(findMoment(3, Wdata_2[t+1])/findMoment(2,W)**(3/2))
+    Wdata_1.append(np.matmul(updateMatrix_1, Wdata_1[t]).tolist()[0])     #Update the distribution at each timestep.
+    momentData_1.append(findMoment(4, Wdata_1[t+1])/findMoment(2,Wdata_1[t+1])**2)
 
-#     Wdata_3.append(np.matmul(updateMatrix_3, Wdata_3[t]).tolist()[0])
-#     momentData_3.append(findMoment(3, Wdata_3[t+1])/findMoment(2,W)**(3/2))
+    Wdata_2.append(np.matmul(updateMatrix_2, Wdata_2[t]).tolist()[0])
+    momentData_2.append(findMoment(4, Wdata_2[t+1])/findMoment(2,Wdata_2[t+1])**2)
 
-#     variance += 2*(27/20)*(H0**2)*(P0**2)*omega*dt
-#     pLoss.append(sum(W)-sum(Wdata_1[t+1]))
+    Wdata_3.append(np.matmul(updateMatrix_3, Wdata_3[t]).tolist()[0])
+    momentData_3.append(findMoment(4, Wdata_3[t+1])/findMoment(2,Wdata_3[t+1])**2)
 
-a=0
-x = np.arange(-5,5,0.01)
-W = skewnorm.pdf(x, a, loc=0, scale=0.5)/np.sum(skewnorm.pdf(x, a, loc=0, scale=0.5))
-print(findMoment(3, W)/findMoment(2,W)**(3/2))
-plt.plot(x,W)
-plt.show()
-
-# evolutionAnimation()
-# plt.title('Standardised Third Central Moment Against Time')
+evolutionAnimation()
+# plt.title('Fourth Central Moment Against Time')
 # plt.xlabel('Log(Time) / Log(Orbits, $P_0$)')
-# plt.ylabel('Log(Standardised Third Central Moment)')
+# plt.ylabel('Log(Fourth Central Moment)')
 
-# #plt.plot(np.log(np.linspace(0,T,T)),np.log(np.abs(pLoss)), label='Probability Loss')
-# plt.plot(np.log(np.linspace(0,T,T)),np.log(np.abs(momentData_1)), label='$D^{(1)} = 0, D^{(2)} =$ Constant')
-# plt.plot(np.log(np.linspace(0,T,T)),np.log(np.abs(momentData_2)), label='$D^{(1)} = 0, D^{(2)} =$ Non-Constant')
+# plt.plot(np.linspace(0,T,T),np.abs(exactMoment), label='Exact')
+# plt.plot(np.linspace(0,T,T),np.abs(momentData_1), label='$D^{(1)} = 0, D^{(2)} =$ Constant')
+# plt.plot(np.linspace(0,T,T),np.abs(momentData_2), label='$D^{(1)} = 0, D^{(2)} =$ Non-Constant')
 # plt.plot(np.linspace(0,T,T),np.abs(momentData_3), label='$D^{(1)} = $Non-Zero, $D^{(2)} =$ Non-Constant')
 
 # plt.legend()
