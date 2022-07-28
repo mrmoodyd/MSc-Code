@@ -101,14 +101,11 @@ updateMatrix_2 = np.matmul(np.linalg.inv(I + alpha*((dx/2)*D1_0 + np.matmul(M,D2
 updateMatrix_3 = np.matmul(np.linalg.inv(I + alpha*((dx/2)*D1 + np.matmul(M,D2))), I - alpha*((dx/2)*D1 + np.matmul(M,D2)))
 
 #Set boundary Conditions.
-updateMatrix_1[0] = [0]*J
-updateMatrix_1[J-1] = [0]*J
+updateMatrix_1[0,:] = updateMatrix_1[J-1,:] = 0
 
-updateMatrix_2[0] = [0]*J
-updateMatrix_2[J-1] = [0]*J
+updateMatrix_2[0,:] = updateMatrix_2[J-1,:] = 0
 
-updateMatrix_3[0] = [0]*J
-updateMatrix_3[J-1] = [0]*J
+updateMatrix_3[0,:] = updateMatrix_3[J-1,:] = 0
 
 #Initialise PDF data list
 exactData = [W]
