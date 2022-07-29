@@ -13,7 +13,8 @@ def exactSol(variance):
     """
     Creates an exact Guassian PDF using a given variance.
     """
-    return norm.pdf(x, loc=1, scale=np.sqrt(variance))/np.sum(norm.pdf(x, loc=1, scale=np.sqrt(variance)))
+    scale = 1/np.sum(norm.pdf(x, loc=1, scale=np.sqrt(variance)))
+    return scale*norm.pdf(x, loc=1, scale=np.sqrt(variance))
 
 def findMoment(n,ydata):
     """
