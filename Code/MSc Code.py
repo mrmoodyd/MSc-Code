@@ -9,12 +9,12 @@ plt.rcParams['animation.ffmpeg_path'] = r'C:\FFmpeg\bin\ffmpeg'
 from scipy.stats import norm, skewnorm
 from scipy.sparse import diags
 
-def exactSol(variance):
+def exactSol(variance, meanLoc=1):
     """
     Creates an exact Guassian PDF using a given variance.
     """
-    scale = 1/np.sum(norm.pdf(x, loc=1, scale=np.sqrt(variance)))
-    return scale*norm.pdf(x, loc=1, scale=np.sqrt(variance))
+    scale = 1/np.sum(norm.pdf(x, loc=meanLoc, scale=np.sqrt(variance)))
+    return scale*norm.pdf(x, loc=meanLoc, scale=np.sqrt(variance))
 
 def findMoment(n,ydata):
     """
