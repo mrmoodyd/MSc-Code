@@ -8,6 +8,7 @@ from matplotlib.lines import Line2D
 plt.rcParams['animation.ffmpeg_path'] = r'C:\FFmpeg\bin\ffmpeg'
 from scipy.stats import norm, skewnorm
 from scipy.sparse import diags
+import csv
 
 def exactSol(variance, meanLoc=1):
     """
@@ -20,7 +21,9 @@ def findMoment(n,ydata):
     """
     Takes the y data of the pdf and calculates the central moment specified by n.
     """
-    mean = np.dot(x, ydata/np.sum(ydata))
+    ydata /= np.sum(ydata)                  #Normalise y data
+
+    mean = np.dot(x, ydata)
     return np.dot((x-mean)**n,ydata)
 
 def evolutionAnimation(plotData, saveFig = False):
@@ -38,7 +41,7 @@ def evolutionAnimation(plotData, saveFig = False):
     handles.extend([meanLine])
     legend = ax.legend(handles=handles)
 
-    ax.set_ylim(0,0.01)
+    ax.set_ylim(0,0.04)
     ax.set_title('Earth-Moon System')
     ax.set_ylabel('Probability')
     ax.set_xlabel('Period / $\~P$')
@@ -53,7 +56,7 @@ def evolutionAnimation(plotData, saveFig = False):
         return line, text, meanLine
 
     #Runs the animation.
-    ani = animation.FuncAnimation(fig, animate, fargs = [plotData, exactData], frames=T, interval=1, blit = True, repeat=False)
+    ani = animation.FuncAnimation(fig, animate, fargs = [plotData, exactData], frames=T, interval=100, blit = True, repeat=False)
 
     #Saves animation if required.
     if saveFig:
@@ -62,15 +65,17 @@ def evolutionAnimation(plotData, saveFig = False):
     plt.show()
 
 #Defines the finite differencing size for the space (dx) and time (dt) dimensions.
-dx = 1e-14
-dt = 10
+dx = 5e-14
+dt = 500
+
+xlim = 600e-12
 
 #Defines the x-axis to be plotted against.
-x = np.arange(1-10e-12,1+10e-12,dx)
+x = np.arange(1-xlim,1+xlim,dx)
 
 #Defines the limits for the space (J) and time (T) range being considered.
 J = len(x)
-T = 1000
+T = 20000
 
 #Define P0, H0, omega, and alpha.
 P0 = 28*60*60*24
@@ -81,7 +86,6 @@ alpha = dt/(2*dx**2)
 
 #Defines the drift coefficient matrix (D1) using previously defined variables.
 D1Values = np.array([(3/160)*P**2*(H0**2)*(P0**2)*(-79*omega + 288*omega - 27*omega) for P in x])
-D1_0 = np.zeros((J,J))
 D1 = diags([D1Values[:J-1], -D1Values[1:J]], [-1,1], shape=(J,J)).toarray()
 
 #Defines the diffusion coefficient matrix (D2) using previously defined variables.
@@ -89,7 +93,7 @@ D2_c = np.diag([(27/20)*(H0**2)*(P0**2)*omega for P in x])       #For constant D
 D2 = np.diag([(27/20)*P**3*(H0**2)*(P0**2)*omega for P in x])  #For variable D2
 
 #Defines the initial W vector as a narrow Gaussian 
-variance = (20*dx)**2
+variance = (10*dx)**2
 W = exactSol(variance)
 
 #Defines the M and I matrices as outlined in the progress report.
@@ -97,8 +101,8 @@ M = diags([-1,2,-1], [-1, 0, 1], shape = (J,J)).toarray()
 I = np.identity(J)
 
 #Defines the update matrix, making use of the I and M matrices and the alpha constant.
-updateMatrix_1 = np.matmul(np.linalg.inv(I + alpha*((dx/2)*D1_0 + np.matmul(M,D2_c))), I - alpha*((dx/2)*D1_0 + np.matmul(M,D2_c)))
-updateMatrix_2 = np.matmul(np.linalg.inv(I + alpha*((dx/2)*D1_0 + np.matmul(M,D2))), I - alpha*((dx/2)*D1_0 + np.matmul(M,D2)))
+updateMatrix_1 = np.matmul(np.linalg.inv(I + alpha*(np.matmul(M,D2_c))), I - alpha*(np.matmul(M,D2_c)))
+updateMatrix_2 = np.matmul(np.linalg.inv(I + alpha*(np.matmul(M,D2))), I - alpha*(np.matmul(M,D2)))
 updateMatrix_3 = np.matmul(np.linalg.inv(I + alpha*((dx/2)*D1 + np.matmul(M,D2))), I - alpha*((dx/2)*D1 + np.matmul(M,D2)))
 
 #Set boundary Conditions.
@@ -114,33 +118,41 @@ Wdata_1 = [W]
 Wdata_2 = [W]
 Wdata_3 = [W]
 
-exactMoment = [findMoment(3, W)/findMoment(2, W)**(3/2)]
-momentData_1 = [findMoment(3, W)/findMoment(2, W)**(3/2)]
-momentData_2 = [findMoment(3, W)/findMoment(2, W)**(3/2)]
-momentData_3 = [findMoment(3, W)/findMoment(2, W)**(3/2)]
+exactMoment = [findMoment(4, W)/(findMoment(2,W)**(2))]
+momentData_1 = [findMoment(4, W)/(findMoment(2,W)**(2))]
+momentData_2 = [findMoment(4, W)/(findMoment(2,W)**(2))]
+momentData_3 = [findMoment(4, W)/(findMoment(2,W)**(2))]
 
 #Run simulation.
 for t in range(0,T-1):
     """
     Iterate over the defined number of timesteps, evolving the distribution at each timestep.
     """
+    print(str(100*t/T) + '% complete.')
     variance += 2*(27/20)*(H0**2)*(P0**2)*omega*dt
     exactData.append(exactSol(variance))
-    exactMoment.append(findMoment(3, exactData[t+1])/findMoment(2, exactData[t+1])**(3/2))
+    exactMoment.append(findMoment(4, exactData[t+1])/(findMoment(2, exactData[t+1])**(2)))
 
     Wdata_1.append(np.matmul(updateMatrix_1, Wdata_1[t]))
-    momentData_1.append(findMoment(3, Wdata_1[t+1])/findMoment(2, Wdata_1[t+1])**(3/2))
+    momentData_1.append(findMoment(4, Wdata_1[t+1])/(findMoment(2,Wdata_1[t+1])**(2)))
 
     Wdata_2.append(np.matmul(updateMatrix_2, Wdata_2[t]))
-    momentData_2.append(findMoment(3, Wdata_2[t+1])/findMoment(2, Wdata_2[t+1])**(3/2))
+    momentData_2.append(findMoment(4, Wdata_2[t+1])/(findMoment(2,Wdata_2[t+1])**(2)))
 
     Wdata_3.append(np.matmul(updateMatrix_3, Wdata_3[t]))
-    momentData_3.append(findMoment(3, Wdata_3[t+1])/findMoment(2, Wdata_3[t+1])**(3/2))
+    momentData_3.append(findMoment(4, Wdata_3[t+1])/(findMoment(2,Wdata_3[t+1])**(2)))
 
-# evolutionAnimation(exactData)
-plt.title('Skewness Against Time')
-plt.ylabel('$\mu_3 / \sigma^3$')
-plt.xlabel('Time / $P_0$')
+#Write data to csv file
+with open('Data/kurtosis_20000.csv', 'w+', newline='') as csvfile:
+    fileWriter = csv.writer(csvfile, delimiter=',')
+    fileWriter.writerow(['#dx',dx])
+    fileWriter.writerow(['#dt',dt])
+    fileWriter.writerow(['#xlim',xlim])
+    fileWriter.writerow(['Timestep', 'Exact Moment', 'Moment Data 1', 'Moment Data 2', 'Moment Data 3'])
+    for i in range(0,T-1):
+        fileWriter.writerow([dt*i, exactMoment[i], momentData_1[i], momentData_2[i], momentData_3[i]])
+
+# evolutionAnimation(Wdata_3)
 
 # plt.plot(np.log10(np.linspace(0,dt*T,T)),np.log10(exactMoment), label='Exact')
 # plt.plot(np.log10(np.linspace(0,dt*T,T)),np.log10(momentData_1), label='$D^{(1)} = 0, D^{(2)} =$ Constant')
@@ -151,6 +163,10 @@ plt.plot(np.linspace(0,dt*T,T),exactMoment, label='Exact')
 plt.plot(np.linspace(0,dt*T,T),momentData_1, label='$D^{(1)} = 0, D^{(2)} =$ Constant')
 plt.plot(np.linspace(0,dt*T,T),momentData_2, label='$D^{(1)} = 0, D^{(2)} =$ Non-Constant')
 plt.plot(np.linspace(0,dt*T,T),momentData_3, label='$D^{(1)} = $Non-Zero, $D^{(2)} =$ Non-Constant')
+
+plt.title('Kurtosis Against Time')
+plt.ylabel('$\mu_4 / \sigma^4$')
+plt.xlabel('Time / $P_0$')
 
 plt.legend()
 plt.show()
