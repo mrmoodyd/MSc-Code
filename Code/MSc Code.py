@@ -118,10 +118,17 @@ Wdata_1 = [W]
 Wdata_2 = [W]
 Wdata_3 = [W]
 
-exactMoment = [findMoment(4, W)/(findMoment(2,W)**(2))]
-momentData_1 = [findMoment(4, W)/(findMoment(2,W)**(2))]
-momentData_2 = [findMoment(4, W)/(findMoment(2,W)**(2))]
-momentData_3 = [findMoment(4, W)/(findMoment(2,W)**(2))]
+#Initialise 4th moment lists
+exact4Moment = [findMoment(4, W)/(findMoment(2,W)**(2))]
+moment4Data_1 = [findMoment(4, W)/(findMoment(2,W)**(2))]
+moment4Data_2 = [findMoment(4, W)/(findMoment(2,W)**(2))]
+moment4Data_3 = [findMoment(4, W)/(findMoment(2,W)**(2))]
+
+#Initialise 3rd moment lists
+exact3Moment = [findMoment(3, W)/(findMoment(2,W)**(3/2))]
+moment3Data_1 = [findMoment(3, W)/(findMoment(2,W)**(3/2))]
+moment3Data_2 = [findMoment(3, W)/(findMoment(2,W)**(3/2))]
+moment3Data_3 = [findMoment(3, W)/(findMoment(2,W)**(3/2))]
 
 #Run simulation.
 for t in range(0,T-1):
@@ -131,26 +138,38 @@ for t in range(0,T-1):
     print(str(100*t/T) + '% complete.')
     variance += 2*(27/20)*(H0**2)*(P0**2)*omega*dt
     exactData.append(exactSol(variance))
-    exactMoment.append(findMoment(4, exactData[t+1])/(findMoment(2, exactData[t+1])**(2)))
+    exact3Moment.append(findMoment(3, exactData[t+1])/(findMoment(2, exactData[t+1])**(3/2)))
+    exact4Moment.append(findMoment(4, exactData[t+1])/(findMoment(2, exactData[t+1])**(2)))
 
     Wdata_1.append(np.matmul(updateMatrix_1, Wdata_1[t]))
-    momentData_1.append(findMoment(4, Wdata_1[t+1])/(findMoment(2,Wdata_1[t+1])**(2)))
+    moment3Data_1.append(findMoment(3, Wdata_1[t+1])/(findMoment(2,Wdata_1[t+1])**(3/2)))
+    moment4Data_1.append(findMoment(4, Wdata_1[t+1])/(findMoment(2,Wdata_1[t+1])**(2)))
 
     Wdata_2.append(np.matmul(updateMatrix_2, Wdata_2[t]))
-    momentData_2.append(findMoment(4, Wdata_2[t+1])/(findMoment(2,Wdata_2[t+1])**(2)))
+    moment3Data_2.append(findMoment(3, Wdata_2[t+1])/(findMoment(2,Wdata_2[t+1])**(3/2)))
+    moment4Data_2.append(findMoment(4, Wdata_2[t+1])/(findMoment(2,Wdata_2[t+1])**(2)))
 
     Wdata_3.append(np.matmul(updateMatrix_3, Wdata_3[t]))
-    momentData_3.append(findMoment(4, Wdata_3[t+1])/(findMoment(2,Wdata_3[t+1])**(2)))
+    moment3Data_3.append(findMoment(3, Wdata_3[t+1])/(findMoment(2,Wdata_3[t+1])**(3/2)))
+    moment4Data_3.append(findMoment(4, Wdata_3[t+1])/(findMoment(2,Wdata_3[t+1])**(2)))
 
-#Write data to csv file
-with open('Data/kurtosis_20000.csv', 'w+', newline='') as csvfile:
+#Write data to csv files
+with open('Data/Skewness_T = '+str(T)+'.csv', 'w+', newline='') as csvfile:
     fileWriter = csv.writer(csvfile, delimiter=',')
     fileWriter.writerow(['#dx',dx])
     fileWriter.writerow(['#dt',dt])
     fileWriter.writerow(['#xlim',xlim])
-    fileWriter.writerow(['Timestep', 'Exact Moment', 'Moment Data 1', 'Moment Data 2', 'Moment Data 3'])
+    fileWriter.writerow(['Timestep', 'Exact Skewness', 'Skewness 1', 'Skewness 2', 'Skewness 3'])
     for i in range(0,T-1):
-        fileWriter.writerow([dt*i, exactMoment[i], momentData_1[i], momentData_2[i], momentData_3[i]])
+        fileWriter.writerow([dt*i, exact3Moment[i], moment3Data_1[i], moment3Data_2[i], moment3Data_3[i]])
+with open('Data/Kurtosis_T = '+str(T)+'.csv', 'w+', newline='') as csvfile:
+    fileWriter = csv.writer(csvfile, delimiter=',')
+    fileWriter.writerow(['#dx',dx])
+    fileWriter.writerow(['#dt',dt])
+    fileWriter.writerow(['#xlim',xlim])
+    fileWriter.writerow(['Timestep', 'Exact Kurtosis', 'Kurtosis 1', 'Kurtosis 2', 'Kurtosis 3'])
+    for i in range(0,T-1):
+        fileWriter.writerow([dt*i, exact4Moment[i], moment4Data_1[i], moment4Data_2[i], moment4Data_3[i]])
 
 # evolutionAnimation(Wdata_3)
 
@@ -159,10 +178,10 @@ with open('Data/kurtosis_20000.csv', 'w+', newline='') as csvfile:
 # plt.plot(np.log10(np.linspace(0,dt*T,T)),np.log10(momentData_2), label='$D^{(1)} = 0, D^{(2)} =$ Non-Constant')
 # plt.plot(np.log10(np.linspace(0,dt*T,T)),np.log10(momentData_3), label='$D^{(1)} = $Non-Zero, $D^{(2)} =$ Non-Constant')
 
-plt.plot(np.linspace(0,dt*T,T),exactMoment, label='Exact')
-plt.plot(np.linspace(0,dt*T,T),momentData_1, label='$D^{(1)} = 0, D^{(2)} =$ Constant')
-plt.plot(np.linspace(0,dt*T,T),momentData_2, label='$D^{(1)} = 0, D^{(2)} =$ Non-Constant')
-plt.plot(np.linspace(0,dt*T,T),momentData_3, label='$D^{(1)} = $Non-Zero, $D^{(2)} =$ Non-Constant')
+plt.plot(np.linspace(0,dt*T,T),exact4Moment, label='Exact')
+plt.plot(np.linspace(0,dt*T,T),moment4Data_1, label='$D^{(1)} = 0, D^{(2)} =$ Constant')
+plt.plot(np.linspace(0,dt*T,T),moment4Data_2, label='$D^{(1)} = 0, D^{(2)} =$ Non-Constant')
+plt.plot(np.linspace(0,dt*T,T),moment4Data_3, label='$D^{(1)} = $Non-Zero, $D^{(2)} =$ Non-Constant')
 
 plt.title('Kurtosis Against Time')
 plt.ylabel('$\mu_4 / \sigma^4$')
