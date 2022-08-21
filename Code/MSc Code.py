@@ -56,7 +56,7 @@ def evolutionAnimation(plotData, saveFig = False):
         return line, text, meanLine
 
     #Runs the animation.
-    ani = animation.FuncAnimation(fig, animate, fargs = [plotData, exactData], frames=T, interval=100, blit = True, repeat=False)
+    ani = animation.FuncAnimation(fig, animate, fargs = [plotData, exactData], frames=T, interval=1, blit = True, repeat=False)
 
     #Saves animation if required.
     if saveFig:
@@ -68,14 +68,14 @@ def evolutionAnimation(plotData, saveFig = False):
 dx = 5e-14
 dt = 500
 
-xlim = 600e-12
+xlim = 6.5e-10
 
 #Defines the x-axis to be plotted against.
 x = np.arange(1-xlim,1+xlim,dx)
 
 #Defines the limits for the space (J) and time (T) range being considered.
 J = len(x)
-T = 20000
+T = 26075
 
 #Define P0, H0, omega, and alpha.
 P0 = 28*60*60*24
@@ -85,7 +85,7 @@ omega = 1e-5
 alpha = dt/(2*dx**2)
 
 #Defines the drift coefficient matrix (D1) using previously defined variables.
-D1Values = np.array([(3/160)*P**2*(H0**2)*(P0**2)*(-79*omega + 288*omega - 27*omega) for P in x])
+D1Values = np.array([(3/160)*P**2*(H0**2)*(P0**2)*(288*omega) for P in x])
 D1 = diags([D1Values[:J-1], -D1Values[1:J]], [-1,1], shape=(J,J)).toarray()
 
 #Defines the diffusion coefficient matrix (D2) using previously defined variables.
@@ -93,7 +93,7 @@ D2_c = np.diag([(27/20)*(H0**2)*(P0**2)*omega for P in x])       #For constant D
 D2 = np.diag([(27/20)*P**3*(H0**2)*(P0**2)*omega for P in x])  #For variable D2
 
 #Defines the initial W vector as a narrow Gaussian 
-variance = (10*dx)**2
+variance = (20*dx)**2
 W = exactSol(variance)
 
 #Defines the M and I matrices as outlined in the progress report.
@@ -119,16 +119,22 @@ Wdata_2 = [W]
 Wdata_3 = [W]
 
 #Initialise 4th moment lists
-exact4Moment = [findMoment(4, W)/(findMoment(2,W)**(2))]
-moment4Data_1 = [findMoment(4, W)/(findMoment(2,W)**(2))]
-moment4Data_2 = [findMoment(4, W)/(findMoment(2,W)**(2))]
-moment4Data_3 = [findMoment(4, W)/(findMoment(2,W)**(2))]
+exact4Moment = [findMoment(4, W)]
+moment4Data_1 = [findMoment(4, W)]
+moment4Data_2 = [findMoment(4, W)]
+moment4Data_3 = [findMoment(4, W)]
 
 #Initialise 3rd moment lists
-exact3Moment = [findMoment(3, W)/(findMoment(2,W)**(3/2))]
-moment3Data_1 = [findMoment(3, W)/(findMoment(2,W)**(3/2))]
-moment3Data_2 = [findMoment(3, W)/(findMoment(2,W)**(3/2))]
-moment3Data_3 = [findMoment(3, W)/(findMoment(2,W)**(3/2))]
+exact3Moment = [findMoment(3,W)]
+moment3Data_1 = [findMoment(3,W)]
+moment3Data_2 = [findMoment(3,W)]
+moment3Data_3 = [findMoment(3,W)]
+
+#Initialise 2nd moment lists
+exact2Moment = [findMoment(2,W)]
+moment2Data_1 = [findMoment(2,W)]
+moment2Data_2 = [findMoment(2,W)]
+moment2Data_3 = [findMoment(2,W)]
 
 #Run simulation.
 for t in range(0,T-1):
@@ -138,54 +144,51 @@ for t in range(0,T-1):
     print(str(100*t/T) + '% complete.')
     variance += 2*(27/20)*(H0**2)*(P0**2)*omega*dt
     exactData.append(exactSol(variance))
-    exact3Moment.append(findMoment(3, exactData[t+1])/(findMoment(2, exactData[t+1])**(3/2)))
-    exact4Moment.append(findMoment(4, exactData[t+1])/(findMoment(2, exactData[t+1])**(2)))
+    exact2Moment.append(findMoment(2, exactData[t+1]))
+    exact3Moment.append(findMoment(3, exactData[t+1]))
+    exact4Moment.append(findMoment(4, exactData[t+1]))
 
     Wdata_1.append(np.matmul(updateMatrix_1, Wdata_1[t]))
-    moment3Data_1.append(findMoment(3, Wdata_1[t+1])/(findMoment(2,Wdata_1[t+1])**(3/2)))
-    moment4Data_1.append(findMoment(4, Wdata_1[t+1])/(findMoment(2,Wdata_1[t+1])**(2)))
+    moment2Data_1.append(findMoment(2, Wdata_1[t+1]))
+    moment3Data_1.append(findMoment(3, Wdata_1[t+1]))
+    moment4Data_1.append(findMoment(4, Wdata_1[t+1]))
 
     Wdata_2.append(np.matmul(updateMatrix_2, Wdata_2[t]))
-    moment3Data_2.append(findMoment(3, Wdata_2[t+1])/(findMoment(2,Wdata_2[t+1])**(3/2)))
-    moment4Data_2.append(findMoment(4, Wdata_2[t+1])/(findMoment(2,Wdata_2[t+1])**(2)))
+    moment2Data_2.append(findMoment(2, Wdata_2[t+1]))
+    moment3Data_2.append(findMoment(3, Wdata_2[t+1]))
+    moment4Data_2.append(findMoment(4, Wdata_2[t+1]))
 
     Wdata_3.append(np.matmul(updateMatrix_3, Wdata_3[t]))
-    moment3Data_3.append(findMoment(3, Wdata_3[t+1])/(findMoment(2,Wdata_3[t+1])**(3/2)))
-    moment4Data_3.append(findMoment(4, Wdata_3[t+1])/(findMoment(2,Wdata_3[t+1])**(2)))
+    moment2Data_3.append(findMoment(2, Wdata_3[t+1]))
+    moment3Data_3.append(findMoment(3, Wdata_3[t+1]))
+    moment4Data_3.append(findMoment(4, Wdata_3[t+1]))
 
 #Write data to csv files
-with open('Data/Skewness_T = '+str(T)+'.csv', 'w+', newline='') as csvfile:
+with open('Data/2Moment_T = '+str(T)+'.csv', 'w+', newline='') as csvfile:
     fileWriter = csv.writer(csvfile, delimiter=',')
     fileWriter.writerow(['#dx',dx])
     fileWriter.writerow(['#dt',dt])
     fileWriter.writerow(['#xlim',xlim])
-    fileWriter.writerow(['Timestep', 'Exact Skewness', 'Skewness 1', 'Skewness 2', 'Skewness 3'])
+    fileWriter.writerow(['Timestep', 'Exact 2nd Moment', '2nd Moment 1', '2nd Moment 2', '2nd Moment 3'])
+    for i in range(0,T-1):
+        fileWriter.writerow([dt*i, exact2Moment[i], moment2Data_1[i], moment2Data_2[i], moment2Data_3[i]])
+
+with open('Data/3Moment_T = '+str(T)+'.csv', 'w+', newline='') as csvfile:
+    fileWriter = csv.writer(csvfile, delimiter=',')
+    fileWriter.writerow(['#dx',dx])
+    fileWriter.writerow(['#dt',dt])
+    fileWriter.writerow(['#xlim',xlim])
+    fileWriter.writerow(['Timestep', 'Exact 3rd Moment', '3rd Moment 1', '3rd Moment 2', '3rd Moment 3'])
     for i in range(0,T-1):
         fileWriter.writerow([dt*i, exact3Moment[i], moment3Data_1[i], moment3Data_2[i], moment3Data_3[i]])
-with open('Data/Kurtosis_T = '+str(T)+'.csv', 'w+', newline='') as csvfile:
+
+with open('Data/4Moment_T = '+str(T)+'.csv', 'w+', newline='') as csvfile:
     fileWriter = csv.writer(csvfile, delimiter=',')
     fileWriter.writerow(['#dx',dx])
     fileWriter.writerow(['#dt',dt])
     fileWriter.writerow(['#xlim',xlim])
-    fileWriter.writerow(['Timestep', 'Exact Kurtosis', 'Kurtosis 1', 'Kurtosis 2', 'Kurtosis 3'])
+    fileWriter.writerow(['Timestep', 'Exact 4th Moment', '4th Moment 1', '4th Moment 2', '4th Moment 3'])
     for i in range(0,T-1):
         fileWriter.writerow([dt*i, exact4Moment[i], moment4Data_1[i], moment4Data_2[i], moment4Data_3[i]])
 
 # evolutionAnimation(Wdata_3)
-
-# plt.plot(np.log10(np.linspace(0,dt*T,T)),np.log10(exactMoment), label='Exact')
-# plt.plot(np.log10(np.linspace(0,dt*T,T)),np.log10(momentData_1), label='$D^{(1)} = 0, D^{(2)} =$ Constant')
-# plt.plot(np.log10(np.linspace(0,dt*T,T)),np.log10(momentData_2), label='$D^{(1)} = 0, D^{(2)} =$ Non-Constant')
-# plt.plot(np.log10(np.linspace(0,dt*T,T)),np.log10(momentData_3), label='$D^{(1)} = $Non-Zero, $D^{(2)} =$ Non-Constant')
-
-plt.plot(np.linspace(0,dt*T,T),exact4Moment, label='Exact')
-plt.plot(np.linspace(0,dt*T,T),moment4Data_1, label='$D^{(1)} = 0, D^{(2)} =$ Constant')
-plt.plot(np.linspace(0,dt*T,T),moment4Data_2, label='$D^{(1)} = 0, D^{(2)} =$ Non-Constant')
-plt.plot(np.linspace(0,dt*T,T),moment4Data_3, label='$D^{(1)} = $Non-Zero, $D^{(2)} =$ Non-Constant')
-
-plt.title('Kurtosis Against Time')
-plt.ylabel('$\mu_4 / \sigma^4$')
-plt.xlabel('Time / $P_0$')
-
-plt.legend()
-plt.show()
