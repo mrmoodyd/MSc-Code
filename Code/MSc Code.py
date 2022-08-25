@@ -140,6 +140,7 @@ moment2Data_3 = [findMoment(2,W)]
 for t in range(0,T-1):
     """
     Iterate over the defined number of timesteps, evolving the distribution at each timestep.
+    Also save data regarding 1st, 2nd, and 3rd moments.
     """
     print(str(100*t/T) + '% complete.')
     variance += 2*(27/20)*(H0**2)*(P0**2)*omega*dt
@@ -190,5 +191,3 @@ with open('Data/4Moment_T = '+str(T)+'.csv', 'w+', newline='') as csvfile:
     fileWriter.writerow(['Timestep', 'Exact 4th Moment', '4th Moment 1', '4th Moment 2', '4th Moment 3'])
     for i in range(0,T-1):
         fileWriter.writerow([dt*i, exact4Moment[i], moment4Data_1[i], moment4Data_2[i], moment4Data_3[i]])
-
-# evolutionAnimation(Wdata_3)
